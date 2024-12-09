@@ -81,13 +81,16 @@ class Summarizer:
         return response.content
 
     def _crawl(self, content_id: str):
-        response = requests.get(f'https://app.daytrip.io/ko/daylog/{content_id}')
+        response = requests.get(f'https://app.daytrip.io/en/daylog/{content_id}')
         html_content = response.text
 
         soup = BeautifulSoup(html_content, 'html.parser')
 
         name = soup.select_one('main > header > div > h1').text
-        location, space_type = soup.select_one('main > header > div > p').text.split(' • ')
+
+        sub_header_splits = soup.select_one('main > header > div > p').text.split(' • ')
+        location = sub_header_splits[0]
+        space_type = sub_header_splits[1] if len(sub_header_splits) > 1 else ""
         description = '\n'.join([line for line in soup.select_one('main > section > p').strings])
         images_div = soup.select_one('main > header > div > div > div')
         image_uris = [img['src'] for img in images_div.find_all('img') if 'src' in img.attrs]
