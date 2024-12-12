@@ -1,9 +1,10 @@
+import json
 import os
 from typing import TypedDict, Sequence, Optional, Type, Annotated
 
 from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_core.messages import BaseMessage, ToolMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import BaseTool
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -12,13 +13,15 @@ from langgraph.graph import START, END, StateGraph, add_messages
 from pydantic import Field, BaseModel
 from pymongo import MongoClient
 
+from langchain_rag.prompt.load_prompt import load_system_prompt
+
 # Vector Store & Retriever
 client = MongoClient(os.environ["DEV_MONGO_CONNECTION_STRING"])
 vector_store = MongoDBAtlasVectorSearch(
-    collection=client["lab_dev"]["langchain_embedding"],
-    index_name="test_vector_store_index",
-    relevance_score_fn="cosine",
-    embedding=OpenAIEmbeddings(model="text-embedding-3-small", dimensions=1536),
+    collection=client["lab_dev"]["langchain_existing_embedding"],
+    index_name="test_control_vector_store_index",
+    relevance_score_fn="euclidean",
+    embedding=OpenAIEmbeddings(model="text-embedding-3-large", dimensions=2048),
 )
 retriever = vector_store.as_retriever(
     search_type="similarity",
@@ -33,7 +36,7 @@ class ContentSearchInput(BaseModel):
 
 class ContentSearchTool(BaseTool):
     name: str = "ContentSearch"
-    description: str = "search for places given a detailed query"
+    description: str = "search for spaces given a detailed query"
     args_schema: Type[BaseModel] = ContentSearchInput
     return_direct: bool = True
 
@@ -43,10 +46,10 @@ class ContentSearchTool(BaseTool):
         search_results = []
         for document in document_list:
             search_result = ""
-            search_result += "[Content ID]\n"
+            search_result += "### Content ID\n"
             search_result += document.metadata.get("content_id") + "\n"
-            search_result += "[Summary]\n"
-            search_result += document.page_content + "\n"
+            search_result += "### Space\n"
+            search_result += json.dumps(json.loads(document.page_content), indent=2) + "\n"
 
             search_results.append(search_result)
 
@@ -55,42 +58,35 @@ class ContentSearchTool(BaseTool):
 
 content_search_tool = ContentSearchTool(name="ContentSearch")
 
+
 # Model
-model = ChatOpenAI(model="gpt-4o")
+class Recommendation(BaseModel):
+    content_id: str
+    reason: str
+
+
+class RecommendationOutput(BaseModel):
+    results: list[Recommendation]
+
+
+model = ChatOpenAI(model="gpt-4o", temperature=0)
 model_with_tools = model.bind_tools([content_search_tool])
 
-# Prompt
-system_prompt = SystemMessagePromptTemplate.from_template("""
-You are an AI concierge designed to help users plan their activities.
-Follow these steps in your conversation:
+json_model = ChatOpenAI(model="gpt-4o", temperature=0, model_kwargs={"response_format": {"type": "json_object"}})
+structured_model = json_model.with_structured_output(RecommendationOutput)
 
-1. Basic Rules:
-   - Respond in {language}
-   - Maintain a polite and empathetic tone
-   - Start with a warm greeting
+general_prompt_template = ChatPromptTemplate.from_messages([
+    load_system_prompt("general"),
+    MessagesPlaceholder(variable_name="messages"),
+])
 
-2. Information Gathering:
-   Collect the following details one by one through natural conversation
-   - Who? (alone/friends/family etc.)
-   - Where? (specific region/area)
-   - What? (dining/drinks/activities etc.)
-   - When? (date/time/preferences)
+recommendation_generation_prompt_template = ChatPromptTemplate.from_messages([
+    load_system_prompt("recommendation-generation"),
+    MessagesPlaceholder(variable_name="messages"),
+])
 
-3. Place Recommendations:
-   - Use "Content Search" tool to find places and generate suggestions
-   - Suggest up to 3 places
-   - Use only information from retrieved documents
-   - If no suitable places found:
-     * Suggest nearby alternatives
-     * Encourage user to create their own posts
-
-4. Response Format:
-   - Provide recommendations in JSON format
-   - Example: {{"<content-id>": "<reason for recommendation>"}}
-""")
-
-prompt_template = ChatPromptTemplate.from_messages([
-    system_prompt,
+recommendation_feedback_prompt_template = ChatPromptTemplate.from_messages([
+    load_system_prompt("recommendation-feedback"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
@@ -102,7 +98,7 @@ class State(TypedDict):
 
 
 def call_model(state: State):
-    input_messages = prompt_template.invoke(state)
+    input_messages = general_prompt_template.invoke(state)
     ai_message = model_with_tools.invoke(input_messages)
     return {"messages": [ai_message]}
 
@@ -126,26 +122,34 @@ def use_tool(state: State):
     return {"messages": tool_messages}
 
 
-def generate_final_response(state: State):
-    input_messages = prompt_template.invoke(state)
-    ai_message = model_with_tools.invoke(input_messages)
+def generate_recommendation(state: State):
+    input_messages = recommendation_generation_prompt_template.invoke(state)
+    recommendation_output: RecommendationOutput = structured_model.invoke(input_messages)
+    return {"messages": [AIMessage(content=recommendation_output.model_dump_json())]}
+
+
+def ask_recommendation_feedback(state: State):
+    input_messages = recommendation_feedback_prompt_template.invoke(state)
+    ai_message = model.invoke(input_messages)
     return {"messages": [ai_message]}
 
 
 workflow = StateGraph(state_schema=State)
 
 workflow.add_node("model", call_model)
-workflow.add_node("tool", use_tool)
-workflow.add_node("final_response", generate_final_response)
+workflow.add_node("use_tool", use_tool)
+workflow.add_node("generate_recommendation", generate_recommendation)
+workflow.add_node("ask_recommendation_feedback", ask_recommendation_feedback)
 
 workflow.add_edge(START, "model")
 workflow.add_conditional_edges(
     "model",
     should_use_tool,
-    {True: "tool", False: END}
+    {True: "use_tool", False: END}
 )
-workflow.add_edge("tool", "final_response")
-workflow.add_edge("final_response", END)
+workflow.add_edge("use_tool", "generate_recommendation")
+workflow.add_edge("generate_recommendation", "ask_recommendation_feedback")
+workflow.add_edge("ask_recommendation_feedback", END)
 
 memory = MemorySaver()
 agent = workflow.compile(checkpointer=memory)
