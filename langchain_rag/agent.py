@@ -29,15 +29,15 @@ retriever = vector_store.as_retriever(
 )
 
 
-# Content Search Tool
-class ContentSearchInput(BaseModel):
+# Space Search Tool
+class SpaceSearchInput(BaseModel):
     query: str = Field(..., description="query string")
 
 
-class ContentSearchTool(BaseTool):
-    name: str = "ContentSearch"
-    description: str = "search for spaces given a detailed query"
-    args_schema: Type[BaseModel] = ContentSearchInput
+class SpaceSearchTool(BaseTool):
+    name: str = "SpaceSearch"
+    description: str = "Search spaces given a detailed query"
+    args_schema: Type[BaseModel] = SpaceSearchInput
     return_direct: bool = True
 
     def _run(self, query: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
@@ -56,7 +56,7 @@ class ContentSearchTool(BaseTool):
         return "\n".join(search_results)
 
 
-content_search_tool = ContentSearchTool(name="ContentSearch")
+content_search_tool = SpaceSearchTool(name="SpaceSearch")
 
 
 # Model
@@ -136,14 +136,14 @@ def ask_recommendation_feedback(state: State):
 
 workflow = StateGraph(state_schema=State)
 
-workflow.add_node("model", call_model)
+workflow.add_node("main", call_model)
 workflow.add_node("use_tool", use_tool)
 workflow.add_node("generate_recommendation", generate_recommendation)
 workflow.add_node("ask_recommendation_feedback", ask_recommendation_feedback)
 
-workflow.add_edge(START, "model")
+workflow.add_edge(START, "main")
 workflow.add_conditional_edges(
-    "model",
+    "main",
     should_use_tool,
     {True: "use_tool", False: END}
 )
@@ -151,5 +151,5 @@ workflow.add_edge("use_tool", "generate_recommendation")
 workflow.add_edge("generate_recommendation", "ask_recommendation_feedback")
 workflow.add_edge("ask_recommendation_feedback", END)
 
-memory = MemorySaver()
-agent = workflow.compile(checkpointer=memory)
+checkpointer = MemorySaver()
+agent = workflow.compile(checkpointer=checkpointer)

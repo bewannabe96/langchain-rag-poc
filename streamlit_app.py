@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 import requests
 from bs4 import BeautifulSoup
@@ -11,6 +12,16 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_rag.agent import agent
 
 load_dotenv()
+
+
+def check_auth_token():
+    auth_token = st.query_params.get('token', [''])
+    if auth_token != os.getenv('STREAMLIT_APP_AUTH_TOKEN'):
+        st.error("The authentication token is invalid.")
+        st.stop()
+
+
+check_auth_token()
 
 st.title("DayTrip Chatbot Demo")
 
