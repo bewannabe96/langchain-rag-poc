@@ -39,7 +39,7 @@ if user_input:
     streamer = agent.stream(
         {"messages": [HumanMessage(user_input)], "language": "Korean"},
         {"configurable": {"thread_id": st.session_state['chat_id']}},
-        stream_mode="messages"
+        stream_mode="messages",
     )
 
     st.session_state['chat_history'].append({"id": None, "role": "bot", "content": ""})
@@ -144,6 +144,7 @@ st.markdown("""
         padding: 10px;
         border-radius: 10px;
         margin: 5px;
+        width: 100%;
         float: left;
         clear: both;
         display: flex;
