@@ -22,7 +22,8 @@ class RecommendationOutput(BaseModel):
 
 
 model = ChatOpenAI(model="gpt-4o", temperature=0)
-structured_model = ChatOpenAI(model="gpt-4o", temperature=0, model_kwargs={"response_format": {"type": "json_object"}})\
+structured_model = ChatOpenAI(model="gpt-4o", temperature=0,
+                              model_kwargs={"response_format": {"type": "json_object"}}) \
     .with_structured_output(RecommendationOutput)
 
 recommendation_generation_prompt_template = ChatPromptTemplate.from_messages([
