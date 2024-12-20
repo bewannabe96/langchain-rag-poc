@@ -6,7 +6,7 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel
 
-from langchain_rag.prompt.load_prompt import load_system_prompt
+from langchain_rag.prompt.load_prompt import load_agent_prompt
 from langchain_rag.state import State
 from langchain_rag.tool.space_search_tool import SpaceSearchTool
 
@@ -33,13 +33,22 @@ selection_model = ChatOpenAI(
     model_kwargs={"response_format": {"type": "json_object"}}
 ).with_structured_output(SelectionOutput)
 
+feedback_model = ChatOpenAI(
+    model="gpt-4o", temperature=0,
+).bind_tools(tools)
+
 search_prompt_template = ChatPromptTemplate.from_messages([
-    load_system_prompt("agent/space_search/search"),
+    load_agent_prompt("agent/space_search/search"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
 selection_prompt_template = ChatPromptTemplate.from_messages([
-    load_system_prompt("agent/space_search/selection"),
+    load_agent_prompt("agent/space_search/selection"),
+    MessagesPlaceholder(variable_name="messages"),
+])
+
+feedback_prompt_template = ChatPromptTemplate.from_messages([
+    load_agent_prompt("agent/space_search/feedback"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
@@ -56,6 +65,12 @@ def selection_node(state: State):
     return {"messages": [AIMessage(content=output.model_dump_json())]}
 
 
+def feedback_node(state: State):
+    prompt = feedback_prompt_template.invoke(state)
+    message = feedback_model.invoke(prompt)
+    return {"messages": [message]}
+
+
 def tool_router(state: State):
     message = state["messages"][-1]
     if isinstance(message, AIMessage) and len(message.tool_calls) > 0:
@@ -67,6 +82,7 @@ builder = StateGraph(state_schema=State)
 
 builder.add_node("search", search_node)
 builder.add_node("selection", selection_node)
+builder.add_node("feedback", feedback_node)
 builder.add_node("tool", ToolNode(tools=tools))
 
 builder.add_edge(START, "search")
@@ -75,6 +91,7 @@ builder.add_conditional_edges(
     {"has_tool_calls": "tool", "no_tool_calls": END}
 )
 builder.add_edge("tool", "selection")
-builder.add_edge("selection", END)
+builder.add_edge("selection", "feedback")
+builder.add_edge("feedback", END)
 
 space_search_agent = builder.compile()

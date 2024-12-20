@@ -1,7 +1,9 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./langchain_rag/app.py:app"
+    "chatbot": "./langchain_rag/chatbot.py:chatbot",
+    "service_agent": "./langchain_rag/agent/service_agent.py:service_agent",
+    "space_search_agent": "./langchain_rag/agent/space_search_agent.py:space_search_agent"
   },
   "env": ".env"
 }
