@@ -37,7 +37,7 @@ if user_input:
     st.session_state['chat_history'].append({"role": "user", "content": user_input})
 
     streamer = chatbot.stream(
-        {"messages": [HumanMessage(user_input)], "language": "Korean", "agent_calls": []},
+        {"messages": [HumanMessage(user_input)], "service_switch": True, "language": "Korean", "agent_calls": []},
         {"configurable": {"thread_id": st.session_state['chat_id']}},
         stream_mode="messages",
     )

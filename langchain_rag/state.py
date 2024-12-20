@@ -5,6 +5,8 @@ from langgraph.graph import add_messages
 
 
 class State(TypedDict):
-    language: Annotated[str, ...]
+    language: str
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    agent_calls: Annotated[list[str], ...]
+
+    continue_service: bool
+    agent_calls: list[str]
