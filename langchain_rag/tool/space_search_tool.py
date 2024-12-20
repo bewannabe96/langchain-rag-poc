@@ -1,8 +1,7 @@
 import json
 import os
-from typing import Optional, Type, Any
+from typing import Type, Any
 
-from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.tools import BaseTool
 from langchain_mongodb import MongoDBAtlasVectorSearch
@@ -40,8 +39,7 @@ class SpaceSearchTool(BaseTool):
             search_kwargs={"k": 20},
         )
 
-    def _run(self, query: str, areas: str,
-             run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+    def _run(self, query: str, areas: str) -> str:
         query = query + "\n"
         query += "Area: " + ", ".join(areas) + "\n"
         document_list = self.retriever.invoke(query)

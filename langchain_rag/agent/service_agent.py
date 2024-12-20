@@ -1,17 +1,22 @@
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
+from langgraph.types import Command
 
 from langchain_rag.prompt.load_prompt import load_system_prompt
 from langchain_rag.state import State
-from langchain_rag.tool import PreferencePersistTool
+from langchain_rag.tool.hand_off_tool import HandOffTool
+from langchain_rag.tool.preference_persist_tool import PreferencePersistTool
 
 tools = [
-    PreferencePersistTool()
+    HandOffTool,
+    PreferencePersistTool(),
 ]
+
+tool_dict = {tool.name: tool for tool in tools}
 
 model = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools=tools)
 prompt_template = ChatPromptTemplate.from_messages([
@@ -26,24 +31,67 @@ def main_node(state: State):
     return {"messages": [message]}
 
 
+def agent_hand_off_node(state: State) -> Command:
+    return Command(
+        graph=Command.PARENT,
+        goto=state["agent_calls"][0],
+        update={
+            "agent_calls": state["agent_calls"][1:]
+        }
+    )
+
+
+def tool_node(state: State):
+    ai_message: AIMessage = state["messages"][-1]
+
+    tool_messages: list[ToolMessage] = []
+    agent_calls = []
+
+    for tool_call in ai_message.tool_calls:
+        tool_name = tool_call["name"]
+        tool_message = tool_dict[tool_name].invoke(tool_call)
+        tool_messages.append(tool_message)
+
+        if tool_name == "HandOffTool":
+            agent_calls.append(tool_call["args"]["agent"])
+
+    return {
+        "messages": tool_messages,
+        "agent_calls": state["agent_calls"] + agent_calls
+    }
+
+
+def agent_router(state: State):
+    return "has_agent_calls" if len(state["agent_calls"]) > 0 else "no_agent_calls"
+
+
 def tool_router(state: State):
     message = state["messages"][-1]
-    if not isinstance(message, AIMessage):
-        return END
-
-    if len(message.tool_calls) > 0:
-        return "tool"
-    else:
-        return END
+    if isinstance(message, AIMessage) and len(message.tool_calls) > 0:
+        return "has_tool_calls"
+    return "no_tool_calls"
 
 
 builder = StateGraph(state_schema=State)
 
 builder.add_node("main", main_node)
-builder.add_node("tool", ToolNode(tools=tools))
+builder.add_node("agent_hand_off", agent_hand_off_node)
+builder.add_node("tool", tool_node)
 
-builder.add_edge(START, "main")
-builder.add_conditional_edges("main", tool_router, ["tool", END])
-builder.add_edge("tool", "main")
+builder.add_conditional_edges(
+    START, agent_router,
+    {"has_agent_calls": "agent_hand_off", "no_agent_calls": "main"}
+)
+builder.add_conditional_edges(
+    "main", tool_router,
+    {"has_tool_calls": "tool", "no_tool_calls": END}
+)
+builder.add_conditional_edges(
+    "tool", agent_router,
+    {"has_agent_calls": "agent_hand_off", "no_agent_calls": "main"}
+)
+builder.add_edge(
+    "agent_hand_off", END
+)
 
 service_agent = builder.compile()

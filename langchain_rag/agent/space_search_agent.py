@@ -8,56 +8,73 @@ from pydantic import BaseModel
 
 from langchain_rag.prompt.load_prompt import load_system_prompt
 from langchain_rag.state import State
-from langchain_rag.tool import tools
+from langchain_rag.tool.space_search_tool import SpaceSearchTool
+
+tools = [
+    SpaceSearchTool()
+]
 
 
-class Recommendation(BaseModel):
+class Selection(BaseModel):
     content_id: str
-    content_type: str
     reason: str
 
 
-class RecommendationOutput(BaseModel):
-    results: list[Recommendation]
+class SelectionOutput(BaseModel):
+    results: list[Selection]
 
 
-model = ChatOpenAI(model="gpt-4o", temperature=0)
-structured_model = ChatOpenAI(model="gpt-4o", temperature=0,
-                              model_kwargs={"response_format": {"type": "json_object"}}) \
-    .with_structured_output(RecommendationOutput)
+search_model = ChatOpenAI(
+    model="gpt-4o", temperature=0,
+).bind_tools(tools)
 
-recommendation_generation_prompt_template = ChatPromptTemplate.from_messages([
-    load_system_prompt("recommendation-generation"),
+selection_model = ChatOpenAI(
+    model="gpt-4o", temperature=0,
+    model_kwargs={"response_format": {"type": "json_object"}}
+).with_structured_output(SelectionOutput)
+
+search_prompt_template = ChatPromptTemplate.from_messages([
+    load_system_prompt("agent/space_search/search"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
-recommendation_feedback_prompt_template = ChatPromptTemplate.from_messages([
-    load_system_prompt("recommendation-feedback"),
+selection_prompt_template = ChatPromptTemplate.from_messages([
+    load_system_prompt("agent/space_search/selection"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
 
-def generate_recommendation(state: State):
-    input_messages = recommendation_generation_prompt_template.invoke(state)
-    recommendation_output: RecommendationOutput = structured_model.invoke(input_messages)
-    return {"messages": [AIMessage(content=recommendation_output.model_dump_json())]}
+def search_node(state: State):
+    prompt = search_prompt_template.invoke(state)
+    message = search_model.invoke(prompt)
+    return {"messages": [message]}
 
 
-def ask_recommendation_feedback(state: State):
-    input_messages = recommendation_feedback_prompt_template.invoke(state)
-    ai_message = model.invoke(input_messages)
-    return {"messages": [ai_message]}
+def selection_node(state: State):
+    prompt = selection_prompt_template.invoke(state)
+    output: SelectionOutput = selection_model.invoke(prompt)
+    return {"messages": [AIMessage(content=output.model_dump_json())]}
+
+
+def tool_router(state: State):
+    message = state["messages"][-1]
+    if isinstance(message, AIMessage) and len(message.tool_calls) > 0:
+        return "has_tool_calls"
+    return "no_tool_calls"
 
 
 builder = StateGraph(state_schema=State)
 
-builder.add_node("tool_use", ToolNode(tools=tools))
-builder.add_node("generate_recommendation", generate_recommendation)
-builder.add_node("ask_recommendation_feedback", ask_recommendation_feedback)
+builder.add_node("search", search_node)
+builder.add_node("selection", selection_node)
+builder.add_node("tool", ToolNode(tools=tools))
 
-builder.add_edge(START, "tool_use")
-builder.add_edge("tool_use", "generate_recommendation")
-builder.add_edge("generate_recommendation", "ask_recommendation_feedback")
-builder.add_edge("ask_recommendation_feedback", END)
+builder.add_edge(START, "search")
+builder.add_conditional_edges(
+    "search", tool_router,
+    {"has_tool_calls": "tool", "no_tool_calls": END}
+)
+builder.add_edge("tool", "selection")
+builder.add_edge("selection", END)
 
-space_search_subgraph = builder.compile()
+space_search_agent = builder.compile()
