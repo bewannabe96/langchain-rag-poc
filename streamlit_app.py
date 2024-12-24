@@ -9,7 +9,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage
 
-from langchain_rag.agent import agent
+from langchain_rag.chatbot import chatbot
 
 load_dotenv()
 
@@ -36,10 +36,10 @@ user_input = st.chat_input("Type your message here...")
 if user_input:
     st.session_state['chat_history'].append({"role": "user", "content": user_input})
 
-    streamer = agent.stream(
-        {"messages": [HumanMessage(user_input)], "language": "Korean"},
+    streamer = chatbot.stream(
+        {"messages": [HumanMessage(user_input)], "service_switch": True, "language": "Korean", "agent_calls": []},
         {"configurable": {"thread_id": st.session_state['chat_id']}},
-        stream_mode="messages"
+        stream_mode="messages",
     )
 
     st.session_state['chat_history'].append({"id": None, "role": "bot", "content": ""})
@@ -144,6 +144,7 @@ st.markdown("""
         padding: 10px;
         border-radius: 10px;
         margin: 5px;
+        width: 100%;
         float: left;
         clear: both;
         display: flex;
