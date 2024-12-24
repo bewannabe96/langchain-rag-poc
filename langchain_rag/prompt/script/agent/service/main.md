@@ -32,8 +32,6 @@ User: "Find me best Chinese restaurants in Brooklyn where I can go with my frien
 
 #### HandOff
 
-The `HandOff` tool MUST BE CALLED ONLY ONE AT A TIME!
-
 ##### Space Search Agent (`space_search`)
 When you have gathered enough user preferences and need to perform a space search, hand off to the "Space Search Agent".
 Whenever you need to search or refer to spaces, NEVER use your own knowledge. ALWAYS retrieve space information through the "Space Search Agent".

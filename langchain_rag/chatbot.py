@@ -1,10 +1,8 @@
 from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, END, StateGraph
-from pydantic import BaseModel
 
 from langchain_rag.agent.service_agent import service_agent
 from langchain_rag.agent.space_search_agent import space_search_agent
@@ -34,21 +32,11 @@ def filter_messages(original_messages: Sequence[BaseMessage],
     return filtered
 
 
-class SwitchOutput(BaseModel):
-    should_continue: bool
-
-
-service_switch_model = ChatOpenAI(
-    model="gpt-4o", temperature=0,
-).with_structured_output(SwitchOutput)
-
-
 def service_switch_node(state: State):
     continue_service = True
 
     if isinstance(state["messages"][-1], AIMessage):
-        output: SwitchOutput = service_switch_model.invoke(state["messages"])
-        continue_service = output.should_continue
+        continue_service = False
 
     return {
         "continue_service": continue_service
