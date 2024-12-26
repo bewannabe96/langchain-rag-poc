@@ -1,13 +1,10 @@
 langchain
 langchain-openai
-langchain-chroma
 langchain-mongodb
 langgraph
-python-dotenv
-beautifulsoup4~=4.12.3
-requests~=2.32.3
-httpx~=0.28.0
 pymongo
-tqdm
 pydantic
-streamlit
+flask
+flask-cors
+flask_restx
+langgraph-checkpoint-mongodb

@@ -1,8 +1,10 @@
+import os
 from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, END, StateGraph
+from langgraph.checkpoint.mongodb import MongoDBSaver
+from pymongo import MongoClient
 
 from langchain_rag.agent.service_agent import service_agent
 from langchain_rag.agent.space_search_agent import space_search_agent
@@ -87,5 +89,11 @@ workflow.add_conditional_edges(
     ["agent_manager", "service_switch"],
 )
 
-checkpointer = MemorySaver()
+
+checkpointer = MongoDBSaver(
+    MongoClient(os.getenv("DEV_MONGO_CONNECTION_STRING")),
+    db_name="daytrip_chatbot",
+    checkpoint_collection_name="checkpoints",
+    writes_collection_name="checkpoint_writes",
+)
 chatbot = workflow.compile(checkpointer=checkpointer)
