@@ -1,11 +1,13 @@
 from langchain_core.messages import AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel
 
+from langchain_rag.filtered_message_placeholder import FilteredMessagesPlaceholder
+from langchain_rag.message.space_recommendation_message import SpaceRecommendationMessage
 from langchain_rag.prompt.load_prompt import load_agent_prompt
 from langchain_rag.state import State
 from langchain_rag.tool.space_search_tool import SpaceSearchTool
@@ -29,8 +31,7 @@ search_model = ChatOpenAI(
 ).bind_tools(tools)
 
 selection_model = ChatOpenAI(
-    model="gpt-4o", temperature=0,
-    model_kwargs={"response_format": {"type": "json_object"}}
+    model="gpt-4o", temperature=0
 ).with_structured_output(SelectionOutput)
 
 feedback_model = ChatOpenAI(
@@ -39,17 +40,17 @@ feedback_model = ChatOpenAI(
 
 search_prompt_template = ChatPromptTemplate.from_messages([
     load_agent_prompt("agent/space_search/search"),
-    MessagesPlaceholder(variable_name="messages"),
+    FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 
 selection_prompt_template = ChatPromptTemplate.from_messages([
     load_agent_prompt("agent/space_search/selection"),
-    MessagesPlaceholder(variable_name="messages"),
+    FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 
 feedback_prompt_template = ChatPromptTemplate.from_messages([
     load_agent_prompt("agent/space_search/feedback"),
-    MessagesPlaceholder(variable_name="messages"),
+    FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 
 
@@ -62,7 +63,7 @@ def search_node(state: State):
 def selection_node(state: State):
     prompt = selection_prompt_template.invoke(state)
     output: SelectionOutput = selection_model.invoke(prompt)
-    return {"messages": [AIMessage(content=output.model_dump_json())]}
+    return {"messages": [SpaceRecommendationMessage(content=output.model_dump_json())]}
 
 
 def feedback_node(state: State):

@@ -1,9 +1,10 @@
 from langchain_core.messages import AIMessage, ToolMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
+from langchain_rag.filtered_message_placeholder import FilteredMessagesPlaceholder
 from langchain_rag.prompt.load_prompt import load_agent_prompt
 from langchain_rag.state import State
 from langchain_rag.tool.hand_off_tool import HandOffTool
@@ -19,7 +20,7 @@ tool_dict = {tool.name: tool for tool in tools}
 model = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools=tools)
 prompt_template = ChatPromptTemplate.from_messages([
     load_agent_prompt("agent/service/main"),
-    MessagesPlaceholder(variable_name="messages"),
+    FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 
 

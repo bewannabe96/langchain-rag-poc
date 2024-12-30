@@ -12,7 +12,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from langchain_rag.chatbot import chatbot
-from util import is_valid_json
+from langchain_rag.message.base import BaseCustomMessage
 
 app = Flask(__name__)
 CORS(app)
@@ -22,6 +22,7 @@ api = Api(app, version='1.0',
           doc='/swagger')
 
 # Namespaces
+ns_health = api.namespace('health', description='Health check operations')
 ns_session = api.namespace('sessions', description='Session operations')
 ns_chat = api.namespace('chat', description='Chat operations')
 
@@ -48,7 +49,7 @@ chat_request = api.model('ChatRequest', {
 chat_response = api.model('ChatResponse', {
     'id': fields.String(required=True, description='Unique message identifier'),
     'source': fields.String(required=True, description='Message source'),
-    'type': fields.String(required=True, description='Message type (text, json, text_chunk)'),
+    'type': fields.String(required=True, description='Message type (text, text_chunk, etc.)'),
     'content': fields.String(required=True, description='Message content chunk')
 })
 
@@ -56,7 +57,7 @@ chat_response = api.model('ChatResponse', {
 # MongoDB connection functions
 def get_db() -> MongoClient:
     if 'db' not in g:
-        g.db = MongoClient(os.getenv('DEV_MONGO_CONNECTION_STRING'))
+        g.db = MongoClient(os.getenv('MONGO_CONNECTION_STRING'))
     return g.db
 
 
@@ -168,7 +169,9 @@ class ChatResource(Resource):
 
                 message: Optional[dict[str, any]] = None
                 for chunk, _ in streamer:
-                    if not isinstance(chunk, AIMessage) or chunk.content == "":
+                    if chunk.content == "":
+                        continue
+                    elif not (isinstance(chunk, AIMessage) or isinstance(chunk, BaseCustomMessage)):
                         continue
 
                     if message is None or message['message_id'] != chunk.id:
@@ -184,11 +187,15 @@ class ChatResource(Resource):
 
                     message['content'] += chunk.content
 
+                    message_type = "text_chunk"
+                    if isinstance(chunk, BaseCustomMessage):
+                        message_type = chunk.type.replace(' ', '_')
+
                     response = {
                         'id': message['message_id'],
                         'source': 'bot',
-                        'type': 'json' if is_valid_json(chunk.content) else 'text_chunk',
-                        'content': chunk.content
+                        'type': message_type,
+                        'content': chunk.content,
                     }
                     yield f"data: {json.dumps(response)}\n\n"
 
@@ -209,6 +216,13 @@ class ChatResource(Resource):
                 'Connection': 'keep-alive'
             }
         )
+
+
+@ns_health.route('')
+class HealthCheckResource(Resource):
+    def get(self):
+        """Health check endpoint"""
+        return {"status": "OK"}, 200
 
 
 @app.errorhandler(Exception)

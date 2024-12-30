@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Type, Any
 
@@ -26,12 +25,14 @@ class SpaceSearchTool(BaseTool):
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
-        client = MongoClient(os.environ["DEV_MONGO_CONNECTION_STRING"])
+        client = MongoClient(os.environ["MONGO_CONNECTION_STRING"])
         vector_store = MongoDBAtlasVectorSearch(
-            collection=client["lab_dev"]["langchain_existing_embedding"],
-            index_name="test_control_vector_store_index",
-            relevance_score_fn="euclidean",
-            embedding=OpenAIEmbeddings(model="text-embedding-3-large", dimensions=2048),
+            collection=client["prod"]["space_embedding"],
+            index_name="space_vector_store_index",
+            relevance_score_fn="cosine",
+            embedding=OpenAIEmbeddings(model="text-embedding-3-large", dimensions=3072),
+            text_key="text",
+            embedding_key="embedding",
         )
 
         self.retriever = vector_store.as_retriever(
@@ -47,10 +48,10 @@ class SpaceSearchTool(BaseTool):
         search_results = []
         for document in document_list:
             search_result = ""
-            search_result += "### Content ID\n"
-            search_result += document.metadata.get("content_id") + "\n"
-            search_result += "### Space\n"
-            search_result += json.dumps(json.loads(document.page_content), indent=2) + "\n"
+            search_result += "### Space ID\n"
+            search_result += document.metadata.get("space")["ref"] + "\n"
+            search_result += "### JSON formatted Space Information\n"
+            search_result += document.page_content + "\n"
 
             search_results.append(search_result)
 
