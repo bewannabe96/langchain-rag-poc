@@ -25,7 +25,7 @@ class SpaceSearchTool(BaseTool):
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
-        client = MongoClient(os.environ["MONGO_CONNECTION_STRING"])
+        client = MongoClient(os.environ["SPACE_VECTOR_STORE_MONGO_CONN_STR"])
         vector_store = MongoDBAtlasVectorSearch(
             collection=client["prod"]["space_embedding"],
             index_name="space_vector_store_index",

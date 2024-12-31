@@ -93,7 +93,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("related_question_agent", END)
 
 checkpointer = MongoDBSaver(
-    MongoClient(os.getenv("MONGO_CONNECTION_STRING")),
+    MongoClient(os.getenv("SESSION_MONGO_CONN_STR")),
     db_name="daytrip_chatbot",
     checkpoint_collection_name="checkpoints",
     writes_collection_name="checkpoint_writes",

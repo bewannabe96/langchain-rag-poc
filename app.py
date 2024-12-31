@@ -57,7 +57,7 @@ chat_response = api.model('ChatResponse', {
 # MongoDB connection functions
 def get_db() -> MongoClient:
     if 'db' not in g:
-        g.db = MongoClient(os.getenv('MONGO_CONNECTION_STRING'))
+        g.db = MongoClient(os.getenv('SESSION_MONGO_CONN_STR'))
     return g.db
 
 
