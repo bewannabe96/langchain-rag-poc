@@ -3,8 +3,7 @@
   "graphs": {
     "chatbot": "./langchain_rag/chatbot.py:chatbot",
     "service_agent": "./langchain_rag/agent/service_agent.py:service_agent",
-    "space_search_agent": "./langchain_rag/agent/space_search_agent.py:space_search_agent",
-    "space_recommend_agent": "./langchain_rag/agent/space_recommend_agent.py:space_recommend_agent"
+    "space_recommend": "./langchain_rag/agent/space_recommend/agent.py:agent"
   },
   "env": ".env"
 }

@@ -189,7 +189,7 @@ class ChatResource(Resource):
 
                     message_type = "text_chunk"
                     if isinstance(chunk, BaseCustomMessage):
-                        message_type = chunk.type.replace(' ', '_')
+                        message_type = chunk.type.replace(' ', '_').lower()
 
                     response = {
                         'id': message['message_id'],

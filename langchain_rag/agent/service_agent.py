@@ -1,18 +1,20 @@
+import json
+
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
+from langchain_rag.agent.space_recommend.hand_off import SpaceRecommendHandOff
 from langchain_rag.filtered_message_placeholder import FilteredMessagesPlaceholder
 from langchain_rag.prompt.load_prompt import load_agent_prompt
 from langchain_rag.state import State
-from langchain_rag.tool.hand_off_tool import HandOffTool
 from langchain_rag.tool.preference_persist_tool import PreferencePersistTool
 
 tools = [
-    HandOffTool,
     PreferencePersistTool(),
+    SpaceRecommendHandOff()
 ]
 
 tool_dict = {tool.name: tool for tool in tools}
@@ -38,15 +40,16 @@ def tool_node(state: State):
 
     for tool_call in ai_message.tool_calls:
         tool_name = tool_call["name"]
+
         tool_message = tool_dict[tool_name].invoke(tool_call)
         tool_messages.append(tool_message)
 
-        if tool_name == "HandOffTool":
-            agent_calls.append(tool_call["args"]["agent"])
+        if "HandOff" in tool_name:
+            agent_calls.append(json.dumps(tool_call))
 
     return {
         "messages": tool_messages,
-        "agent_calls": state["agent_calls"] + agent_calls
+        "agent_calls": agent_calls
     }
 
 

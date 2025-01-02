@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Sequence
 
@@ -8,12 +9,8 @@ from pymongo import MongoClient
 
 from langchain_rag.agent.related_question_agent import related_question_agent
 from langchain_rag.agent.service_agent import service_agent
-from langchain_rag.agent.space_search_agent import space_search_agent
+from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_off_to_space_recommend_agent
 from langchain_rag.state import State
-
-agent_dict = {
-    "space_search": space_search_agent,
-}
 
 
 def filter_newly_generated_messages(original_messages: Sequence[BaseMessage],
@@ -63,9 +60,15 @@ def call_related_question_agent(state: State):
 
 
 def agent_manager_node(state: State):
-    agent_name = state["agent_calls"][0]
-    agent_state = agent_dict[agent_name].invoke(state)
-    messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
+    agent_call = json.loads(state["agent_calls"][0])
+
+    agent_name = agent_call["name"]
+    agent_args = agent_call["args"]
+
+    messages = []
+
+    if agent_name == "SpaceRecommendHandOff":
+        messages = hand_off_to_space_recommend_agent(agent_args, state.get("language"))
 
     return {
         "agent_calls": state["agent_calls"][1:],

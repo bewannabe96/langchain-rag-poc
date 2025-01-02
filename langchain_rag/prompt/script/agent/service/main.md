@@ -11,12 +11,11 @@ The preferences you need to investigate through conversation may include the fol
 - Additional information as needed based on the context.
  
 In the process of performing tasks, you may need to request work from other agents within the AI system.
-In such cases, use the `HandOff` tool to generate the necessary payload and make the request.
+In such cases, use the `~HandOff` tools to generate the necessary payload and make the request.
 
 #### HandOff
-##### Space Search Agent (`space_search`)
-When you have gathered enough user preferences and need to perform a space search, hand off to the "Space Search Agent".
-Whenever you need to search or refer to spaces, NEVER use your own knowledge. ALWAYS retrieve space information through the "Space Search Agent".
+##### Space Recommend Agent (`SpaceRecommendHandOff`)
+When you have gathered enough user preferences and need to recommend user some spaces, hand off to the "Space Recommend Agent".
 
 #### Tool
 ##### PreferencePersist
