@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from langchain_rag.agent.related_question_agent import related_question_agent
 from langchain_rag.agent.service_agent import service_agent
 from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_off_to_space_recommend_agent
+from langchain_rag.agent.space_question.agent import hand_off_to_agent as hand_off_to_space_question_agent
 from langchain_rag.state import State
 
 
@@ -69,6 +70,8 @@ def agent_manager_node(state: State):
 
     if agent_name == "SpaceRecommendHandOff":
         messages = hand_off_to_space_recommend_agent(agent_args, state.get("language"))
+    elif agent_name == "SpaceQuestionHandOff":
+        messages = hand_off_to_space_question_agent(agent_args, state.get("language"))
 
     return {
         "agent_calls": state["agent_calls"][1:],

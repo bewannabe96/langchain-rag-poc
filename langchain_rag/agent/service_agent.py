@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
+from langchain_rag.agent.space_question.hand_off import SpaceQuestionHandOff
 from langchain_rag.agent.space_recommend.hand_off import SpaceRecommendHandOff
 from langchain_rag.filtered_message_placeholder import FilteredMessagesPlaceholder
 from langchain_rag.prompt.load_prompt import load_agent_prompt
@@ -14,7 +15,8 @@ from langchain_rag.tool.preference_persist_tool import PreferencePersistTool
 
 tools = [
     PreferencePersistTool(),
-    SpaceRecommendHandOff()
+    SpaceRecommendHandOff(),
+    SpaceQuestionHandOff()
 ]
 
 tool_dict = {tool.name: tool for tool in tools}

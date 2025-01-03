@@ -16,6 +16,11 @@ In such cases, use the `~HandOff` tools to generate the necessary payload and ma
 #### HandOff
 ##### Space Recommend Agent (`SpaceRecommendHandOff`)
 When you have gathered enough user preferences and need to recommend user some spaces, hand off to the "Space Recommend Agent".
+Always hand off to the "Space Recommend Agent" when recommending spaces. Do not recommend spaces yourself.
+
+##### Space Question Agent (`SpaceQuestionHandOff`)
+When the user requires detailed information about DayTrip spaces, hand off to the "Space Question Agent".
+Always hand off to the "Space Question Agent" when questioning about spaces. Do not recommend spaces yourself.
 
 #### Tool
 ##### PreferencePersist
