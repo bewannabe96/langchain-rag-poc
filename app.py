@@ -29,7 +29,8 @@ ns_chat = api.namespace('chat', description='Chat operations')
 # Models
 session_model = api.model('Session', {
     'user_id': fields.String(required=True, description='User ID'),
-    'language': fields.String(default='Korean', description='Chat language')
+    'language': fields.String(default='Korean', description='Chat language'),
+    'area': fields.String(default=None, description='User\'s current area')
 })
 
 session_response = api.model('SessionResponse', {
@@ -83,6 +84,7 @@ class SessionResource(Resource):
             'session_id': session_id,
             'user_id': data['user_id'],
             'language': data.get('language', 'Korean'),
+            'area': data.get('area', None),
             'messages': [],
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -160,7 +162,7 @@ class ChatResource(Resource):
                     {
                         "messages": [HumanMessage(content)],
                         "language": session['language'],
-                        "service_switch": True,
+                        "area": session['area'],
                         "agent_calls": []
                     },
                     {"configurable": {"thread_id": session_id}},
