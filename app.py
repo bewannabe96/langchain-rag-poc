@@ -163,7 +163,7 @@ class ChatResource(Resource):
                         "messages": [HumanMessage(content)],
                         "language": session['language'],
                         "area": session['area'],
-                        "agent_calls": []
+                        "agent_calls": [],
                     },
                     {"configurable": {"thread_id": session_id}},
                     stream_mode="messages"
