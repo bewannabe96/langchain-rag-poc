@@ -15,7 +15,7 @@ class SuggestOutput(BaseModel):
 
 
 suggest_prompt_template = ChatPromptTemplate.from_messages([
-    load_agent_prompt("agent/related_question/suggest"),
+    load_agent_prompt("langchain_rag/prompt/script/agent/related_question/suggest.md"),
     FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 

@@ -1,13 +1,10 @@
-import json
 import os
 from typing import Type, Any
 
-from langchain_core.retrievers import BaseRetriever
 from langchain_core.tools import BaseTool
-from langchain_mongodb import MongoDBAtlasVectorSearch
-from langchain_openai import OpenAIEmbeddings
 from pydantic import Field, BaseModel
 from pymongo import MongoClient
+from pymongo.synchronous.collection import Collection
 
 
 class SpaceRetrieveInput(BaseModel):
@@ -20,37 +17,40 @@ class SpaceRetrieveTool(BaseTool):
     args_schema: Type[BaseModel] = SpaceRetrieveInput
     return_direct: bool = True
 
-    retriever: BaseRetriever = Field(default=None)
+    collection: Collection = Field(default=None)
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
-
         client = MongoClient(os.environ["SPACE_VECTOR_STORE_MONGO_CONN_STR"])
-        vector_store = MongoDBAtlasVectorSearch(
-            collection=client["prod"]["space_embedding"],
-            index_name="space_vector_store_index",
-            relevance_score_fn="cosine",
-            embedding=OpenAIEmbeddings(model="text-embedding-3-large", dimensions=3072),
-            text_key="text",
-            embedding_key="embedding",
-        )
-
-        self.retriever = vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 20},
-        )
+        self.collection = client["prod"]["space"]
 
     def _run(self, space_names: list[str]) -> str:
-        query = json.dumps({"space_names": space_names})
-        document_list = self.retriever.invoke(query)
+        documents = []
+        for space_name in space_names:
+            documents += self.collection.aggregate([
+                {
+                    "$search": {
+                        "index": "space_names_search",
+                        "compound": {
+                            "should": [
+                                {"autocomplete": {"query": space_name, "path": "names.en"}},
+                                {"autocomplete": {"query": space_name, "path": "names.ko"}}
+                            ],
+                            "minimumShouldMatch": 1,
+                        },
+                    },
+                },
+                {"$project": {"embeddingText": 1}},
+                {"$limit": 5}
+            ])
 
         search_results = []
-        for document in document_list:
-            search_result = ""
-            search_result += "**Space ID**\n"
-            search_result += document.metadata.get("space")["ref"] + "\n"
-            search_result += "**JSON formatted Space Information**\n"
-            search_result += document.page_content + "\n"
+        for doc in documents:
+            if "embeddingText" not in doc:
+                continue
+
+            search_result = "**JSON formatted Space Document**\n"
+            search_result += doc["embeddingText"] + "\n\n"
 
             search_results.append(search_result)
 

@@ -21,7 +21,7 @@ selection_model = ChatOpenAI(
 ).with_structured_output(SelectionOutput)
 
 selection_prompt_template = ChatPromptTemplate.from_messages([
-    load_agent_prompt("agent/space_recommend/selection"),
+    load_agent_prompt("langchain_rag/agent/space_recommend/prompt/selection.md"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 

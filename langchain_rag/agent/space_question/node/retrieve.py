@@ -2,7 +2,7 @@ from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
-from langchain_rag.prompt.load_prompt import load_agent_prompt_v2
+from langchain_rag.prompt.load_prompt import load_agent_prompt
 from ..state import State
 from ..tool.space_retrieve_tool import SpaceRetrieveTool
 
@@ -13,7 +13,7 @@ model = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools=[
 ])
 
 chat_prompt_template = ChatPromptTemplate.from_messages([
-    load_agent_prompt_v2("langchain_rag/agent/space_question/prompt/retrieve.md"),
+    load_agent_prompt("langchain_rag/agent/space_question/prompt/retrieve.md"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 

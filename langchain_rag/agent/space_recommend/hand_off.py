@@ -6,7 +6,7 @@ from langchain_rag.agent.hand_off import HandOff
 
 
 class SpaceRecommendHandOffArgs(BaseModel):
-    query: str = Field(description="Detailed English query for space recommendation")
+    query: str = Field(description="Detailed localized query for space recommendation")
     exclude_space_ids: list[str] = Field(description="Space IDs to exclude from the result")
 
 

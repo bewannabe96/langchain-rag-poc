@@ -23,7 +23,7 @@ tool_dict = {tool.name: tool for tool in tools}
 
 model = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools=tools)
 prompt_template = ChatPromptTemplate.from_messages([
-    load_agent_prompt("agent/service/main"),
+    load_agent_prompt("langchain_rag/prompt/script/agent/service/main.md"),
     FilteredMessagesPlaceholder(variable_name="messages"),
 ])
 

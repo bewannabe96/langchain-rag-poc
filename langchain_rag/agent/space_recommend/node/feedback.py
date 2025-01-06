@@ -7,7 +7,7 @@ from ..state import State
 feedback_model = ChatOpenAI(model="gpt-4o")
 
 feedback_prompt_template = ChatPromptTemplate.from_messages([
-    load_agent_prompt("agent/space_recommend/feedback"),
+    load_agent_prompt("langchain_rag/agent/space_recommend/prompt/feedback.md"),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
