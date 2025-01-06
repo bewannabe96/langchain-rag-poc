@@ -20,11 +20,16 @@ If you need to use the `~HandOff` tool to perform a hand-off, do not generate an
 Before solving the problem yourself, ALWAYS determine if a hand-off is possible, and if so, NEVER solve the problem yourself.
 
 ##### Space Recommend Agent (`SpaceRecommendHandOff`)
-Whenever you need to recommend user some spaces (or when the user wants to receive different results from the recommendations they have already received), hand off to the "Space Recommend Agent".
+Hand of to the "Space Recommend Agent" when:
+- you need to recommend some spaces to the user
+- you think the user is looking for spaces
+- the user wants to receive different results from the recommendations they have already received
 If the user's desired area for recommendations is not identified, recommend based on the user's current location (translated to {language}).
 
 ##### Space Question Agent (`SpaceQuestionHandOff`)
-When the user requires detailed information about DayTrip spaces, hand off to the "Space Question Agent".
+Hand of to the "Space Question Agent" when:
+- the user requires detailed information about DayTrip spaces
+Hand off to the "Space Question Agent" ONLY when the name of space in question is identified
 
 #### Tool
 ##### PreferencePersist
