@@ -37,7 +37,7 @@ def hand_off_to_agent(args: dict) -> list[BaseMessage]:
         State(
             language=args["language"],
             messages=[HumanMessage(content=args["query"])],
-            exclude_space_ids=','.join(args["exclude_space_ids"]),
+            exclude_space_ids=args["exclude_space_ids"],
         )
     )
 

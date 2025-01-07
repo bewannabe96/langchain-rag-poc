@@ -17,12 +17,12 @@ Conversation:
 
 Suggestion:
 ```
-{{
+{
   "suggestions": [
     "Got any spots that are more modern and hip?",
     "Know any dope art spots or galleries in Brooklyn?",
     "What cool stuff can I do after I'm done with the book?",
     ...
   ]
-}}
+}
 ```

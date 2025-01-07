@@ -7,4 +7,4 @@ from langgraph.graph import add_messages
 class State(TypedDict):
     language: str
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    exclude_space_ids: str
+    exclude_space_ids: list[str]

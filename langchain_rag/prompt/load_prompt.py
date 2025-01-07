@@ -11,4 +11,4 @@ def load_agent_prompt(path: str):
     with open(path, "r", encoding="utf-8") as file:
         prompt_text += file.read()
 
-    return SystemMessagePromptTemplate.from_template(prompt_text)
+    return SystemMessagePromptTemplate.from_template(prompt_text, template_format="jinja2")

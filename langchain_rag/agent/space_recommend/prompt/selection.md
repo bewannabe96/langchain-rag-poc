@@ -6,21 +6,21 @@ If there are no suitable spaces to select, you do not need to force a selection.
 If there are no spaces, respond with an empty `results` array.
 
 However, spaces with the following IDs SHOULD NOT be included in your selection:
-{exclude_space_ids}
+{{ exclude_space_ids | join(',') }}
 
 Response example:
 ```
-{{
+{
     "results": [
-        {{
+        {
             "space_id": "123",
             "reason": "This space offers a unique atmosphere that enhances user experience."
-        }},
-        {{
+        },
+        {
             "space_id": "456",
             "reason": "This location is highly rated for its accessibility and facilities."
-        }},
+        },
         ...
     ]
-}}
+}
 ```
