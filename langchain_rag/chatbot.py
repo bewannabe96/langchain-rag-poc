@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Sequence
 
@@ -8,9 +7,9 @@ from langgraph.graph import START, END, StateGraph
 from pymongo import MongoClient
 
 from langchain_rag.agent.related_question_agent import related_question_agent
-from langchain_rag.agent.service_agent import service_agent
-from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_off_to_space_recommend_agent
+from langchain_rag.agent.service.agent import agent as service_agent
 from langchain_rag.agent.space_question.agent import hand_off_to_agent as hand_off_to_space_question_agent
+from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_off_to_space_recommend_agent
 from langchain_rag.state import State
 
 
@@ -45,7 +44,7 @@ def call_service_agent(state: State):
     messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
 
     return {
-        "agent_calls": agent_state["agent_calls"],
+        "agent_call": agent_state["agent_call"] if "agent_call" in agent_state else None,
         "messages": messages
     }
 
@@ -54,29 +53,22 @@ def call_related_question_agent(state: State):
     agent_state = related_question_agent.invoke(state)
     messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
 
-    return {
-        "agent_calls": agent_state["agent_calls"],
-        "messages": messages
-    }
+    return {"messages": messages}
 
 
 def agent_manager_node(state: State):
-    agent_call = json.loads(state["agent_calls"][0])
-
+    agent_call = state["agent_call"]
     agent_name = agent_call["name"]
     agent_args = agent_call["args"]
 
     messages = []
 
-    if agent_name == "SpaceRecommendHandOff":
-        messages = hand_off_to_space_recommend_agent(agent_args, state.get("language"))
-    elif agent_name == "SpaceQuestionHandOff":
-        messages = hand_off_to_space_question_agent(agent_args, state.get("language"))
+    if agent_name == "SpaceRecommend":
+        messages = hand_off_to_space_recommend_agent({**agent_args, "language": state.get("language")})
+    elif agent_name == "SpaceQuestion":
+        messages = hand_off_to_space_question_agent({**agent_args, "language": state.get("language")})
 
-    return {
-        "agent_calls": state["agent_calls"][1:],
-        "messages": messages
-    }
+    return {"agent_call": None, "messages": messages}
 
 
 workflow = StateGraph(state_schema=State)
@@ -88,14 +80,10 @@ workflow.add_node("agent_manager", agent_manager_node)
 workflow.add_edge(START, "service_agent")
 workflow.add_conditional_edges(
     "service_agent",
-    lambda state: "agent_manager" if len(state["agent_calls"]) > 0 else END,
+    lambda state: "agent_manager" if state["agent_call"] is not None else END,
     ["agent_manager", END],
 )
-workflow.add_conditional_edges(
-    "agent_manager",
-    lambda state: "agent_manager" if len(state["agent_calls"]) > 0 else "related_question_agent",
-    ["agent_manager", "related_question_agent"],
-)
+workflow.add_edge("agent_manager", "related_question_agent")
 workflow.add_edge("related_question_agent", END)
 
 checkpointer = MongoDBSaver(

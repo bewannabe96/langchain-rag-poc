@@ -26,10 +26,10 @@ builder.add_edge("answer", END)
 agent = builder.compile()
 
 
-def hand_off_to_agent(args: dict, language: str) -> list[BaseMessage]:
+def hand_off_to_agent(args: dict) -> list[BaseMessage]:
     state = agent.invoke(
         State(
-            language=language,
+            language=args["language"],
             messages=[HumanMessage(content=args["question"])],
         )
     )

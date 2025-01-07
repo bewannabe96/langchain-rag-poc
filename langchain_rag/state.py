@@ -1,12 +1,16 @@
-from typing import TypedDict, Annotated, Sequence, Optional
+from typing import Optional, Any
 
-from langchain_core.messages import BaseMessage
-from langgraph.graph import add_messages
+from langgraph.graph import MessagesState
+from typing_extensions import TypedDict
 
 
-class State(TypedDict):
+class AgentCall(TypedDict):
+    name: str
+    args: dict[str, Any]
+
+
+class State(MessagesState):
     language: str
     area: str
 
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    agent_calls: list[str]
+    agent_call: Optional[AgentCall]

@@ -2,8 +2,8 @@
   "dependencies": ["."],
   "graphs": {
     "chatbot": "./langchain_rag/chatbot.py:chatbot",
-    "service_agent": "./langchain_rag/agent/service_agent.py:service_agent",
 
+    "service": "./langchain_rag/agent/service/agent.py:agent",
     "space_recommend": "./langchain_rag/agent/space_recommend/agent.py:agent",
     "space_question": "./langchain_rag/agent/space_question/agent.py:agent"
   },

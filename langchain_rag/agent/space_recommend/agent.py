@@ -32,10 +32,10 @@ builder.add_edge("feedback", END)
 agent = builder.compile()
 
 
-def hand_off_to_agent(args: dict, language: str) -> list[BaseMessage]:
+def hand_off_to_agent(args: dict) -> list[BaseMessage]:
     state = agent.invoke(
         State(
-            language=language,
+            language=args["language"],
             messages=[HumanMessage(content=args["query"])],
             exclude_space_ids=','.join(args["exclude_space_ids"]),
         )
