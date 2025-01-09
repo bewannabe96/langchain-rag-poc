@@ -42,8 +42,11 @@ Conditions:
 - User wants different results from previous recommendations
 - Any mention of finding, searching, or looking for spaces
 Rules:
-- If user's desired area is not specified, use their current location (translated to {language})
-- Actively use the user's preferences to make recommendations
+- Actively utilize the user's preferences to generate recommendation queries.
+- Especially, if the user does not explicitly mention their preferences, actively utilize the user's preferences to generate recommendation queries.
+- If user's desired area is not specified, use their current location.
+- Query MUST be concise and to the point.
+- Translate the query to {language}.
 
 Space Question Agent (`SpaceQuestionHandOff`)
 Conditions:
