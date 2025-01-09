@@ -6,15 +6,15 @@ from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
+from langchain_rag.agent.service.tool.preference_persist_tool import PreferencePersist
 from langchain_rag.agent.space_question.hand_off import SpaceQuestionHandOff
 from langchain_rag.agent.space_recommend.hand_off import SpaceRecommendHandOff
 from langchain_rag.filtered_message_placeholder import FilteredMessagesPlaceholder
 from langchain_rag.prompt.load_prompt import load_agent_prompt
 from langchain_rag.state import State, AgentCall
-from langchain_rag.tool.preference_persist_tool import PreferencePersistTool
 
 tools = [
-    PreferencePersistTool(),
+    PreferencePersist,
 
     SpaceRecommendHandOff(),
     SpaceQuestionHandOff()
@@ -37,11 +37,10 @@ def agent_node(state: State):
 
 
 def tool_node(state: State):
-    ai_message: AIMessage = state["messages"][-1]
-
     tool_messages: list[ToolMessage] = []
     agent_call: Optional[AgentCall] = None
 
+    ai_message: AIMessage = state["messages"][-1]
     for tool_call in ai_message.tool_calls:
         tool_name = tool_call["name"]
 

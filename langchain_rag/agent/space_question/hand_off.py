@@ -6,7 +6,7 @@ from langchain_rag.agent.hand_off import HandOff
 
 
 class SpaceQuestionHandOffArgs(BaseModel):
-    question: str = Field(description="Detailed question in English about DayTrip spaces")
+    question: str = Field(description="Detailed question about DayTrip spaces.")
 
 
 class SpaceQuestionHandOff(HandOff):
@@ -16,5 +16,3 @@ class SpaceQuestionHandOff(HandOff):
 
     def _run(self, question: str) -> str:
         return f"[SpaceQuestionHandOff] {question}"
-
-

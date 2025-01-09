@@ -1,5 +1,7 @@
+import json
 import os
 from typing import Type, Any
+import yaml
 
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.tools import BaseTool
@@ -21,6 +23,7 @@ class SpaceSearchTool(BaseTool):
     return_direct: bool = True
 
     retriever: BaseRetriever = Field(default=None)
+    ignore_keys: list[str] = ["coordinate", "businessStatuses", "operatingHours"]
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
@@ -40,6 +43,20 @@ class SpaceSearchTool(BaseTool):
             search_kwargs={"k": 20},
         )
 
+    @staticmethod
+    def convert_to_readable(key: str) -> str:
+        remove_prefix = "space"
+        remove_prefix_len = len(remove_prefix)
+
+        if key.startswith(remove_prefix):
+            key = key[remove_prefix_len:]
+
+        result = key[0].upper()
+        for char in key[1:]:
+            result += (" " + char) if char.isupper() else char
+
+        return result
+
     def _run(self, query: str, areas: str) -> str:
         query = query + "\n"
         query += "Area: " + ", ".join(areas) + "\n"
@@ -47,12 +64,14 @@ class SpaceSearchTool(BaseTool):
 
         search_results = []
         for document in document_list:
-            search_result = ""
-            search_result += "### Space ID\n"
-            search_result += document.metadata.get("space")["ref"] + "\n"
-            search_result += "### JSON formatted Space Information\n"
-            search_result += document.page_content + "\n"
+            json_doc = json.loads(document.page_content)
 
-            search_results.append(search_result)
+            transformed_doc = {"ID": document.metadata.get("space")["ref"]}
+            for key, value in json_doc.items():
+                if key not in self.ignore_keys:
+                    new_key = self.convert_to_readable(key)
+                    transformed_doc[new_key] = value
 
-        return "\n".join(search_results)
+            search_results.append(transformed_doc)
+
+        return yaml.dump(search_results, allow_unicode=True, sort_keys=False)

@@ -4,6 +4,7 @@ from typing import Sequence
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.graph import START, END, StateGraph
+from langgraph.store.memory import InMemoryStore
 from pymongo import MongoClient
 
 from langchain_rag.agent.related_question_agent import related_question_agent
@@ -50,6 +51,7 @@ def call_service_agent(state: State):
 
 
 def call_related_question_agent(state: State):
+    # TODO: agent manager의 마지막 메세지도 포함되서 반환됨
     agent_state = related_question_agent.invoke(state)
     messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
 
@@ -92,4 +94,5 @@ checkpointer = MongoDBSaver(
     checkpoint_collection_name="checkpoints",
     writes_collection_name="checkpoint_writes",
 )
-chatbot = workflow.compile(checkpointer=checkpointer)
+store = InMemoryStore()
+chatbot = workflow.compile(checkpointer=checkpointer, store=store)
