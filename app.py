@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Generator, Optional
 
 from flask import Flask, request, Response, jsonify, g
@@ -86,8 +86,8 @@ class SessionResource(Resource):
             'language': data.get('language', 'Korean'),
             'area': data.get('area', None),
             'messages': [],
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.now(UTC),
+            'updated_at': datetime.now(UTC)
         }
 
         get_sessions().insert_one(session_data)
@@ -149,9 +149,9 @@ class ChatResource(Resource):
                             'message_id': message_id,
                             'role': 'user',
                             'content': content,
-                            'timestamp': datetime.utcnow()
+                            'timestamp': datetime.now(UTC)
                         }},
-                        '$set': {'updated_at': datetime.utcnow()}
+                        '$set': {'updated_at': datetime.now(UTC)}
                     },
                 )
 
@@ -161,9 +161,10 @@ class ChatResource(Resource):
                 streamer = chatbot.stream(
                     {
                         "messages": [HumanMessage(content)],
+
+                        "user_id": session['user_id'],
                         "language": session['language'],
                         "area": session['area'],
-                        "agent_calls": [],
                     },
                     {"configurable": {"thread_id": session_id}},
                     stream_mode="messages"
@@ -171,9 +172,7 @@ class ChatResource(Resource):
 
                 message: Optional[dict[str, any]] = None
                 for chunk, _ in streamer:
-                    if chunk.content == "":
-                        continue
-                    elif not (isinstance(chunk, AIMessage) or isinstance(chunk, BaseCustomMessage)):
+                    if chunk.content == "" or not isinstance(chunk, AIMessage):
                         continue
 
                     if message is None or message['message_id'] != chunk.id:
@@ -181,8 +180,8 @@ class ChatResource(Resource):
                             get_sessions().update_one(
                                 {'session_id': session_id},
                                 {
-                                    '$push': {'messages': {**message, 'timestamp': datetime.utcnow()}},
-                                    '$set': {'updated_at': datetime.utcnow()}
+                                    '$push': {'messages': {**message, 'timestamp': datetime.now(UTC)}},
+                                    '$set': {'updated_at': datetime.now(UTC)}
                                 },
                             )
                         message = {'message_id': chunk.id, 'role': 'bot', 'content': '', }
@@ -205,8 +204,8 @@ class ChatResource(Resource):
                     get_sessions().update_one(
                         {'session_id': session_id},
                         {
-                            '$push': {'messages': {**message, 'timestamp': datetime.utcnow()}},
-                            '$set': {'updated_at': datetime.utcnow()}
+                            '$push': {'messages': {**message, 'timestamp': datetime.now(UTC)}},
+                            '$set': {'updated_at': datetime.now(UTC)}
                         },
                     )
 

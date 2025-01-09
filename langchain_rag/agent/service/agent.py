@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
+from langgraph.store.base import BaseStore
 
 from langchain_rag.agent.service.tool.preference_persist_tool import PreferencePersist
 from langchain_rag.agent.space_question.hand_off import SpaceQuestionHandOff
@@ -30,13 +31,16 @@ prompt_template = ChatPromptTemplate.from_messages([
 ])
 
 
-def agent_node(state: State):
-    prompt = prompt_template.invoke(state)
+def agent_node(state: State, store: BaseStore):
+    preference_memory_item = store.get(namespace=("user", state["user_id"]), key="preference")
+    preference = preference_memory_item.value if preference_memory_item else {}
+
+    prompt = prompt_template.invoke({**state, "preference": preference})
     message = model.invoke(prompt)
     return {"messages": [message]}
 
 
-def tool_node(state: State):
+def tool_node(state: State, store: BaseStore):
     tool_messages: list[ToolMessage] = []
     agent_call: Optional[AgentCall] = None
 
@@ -44,7 +48,11 @@ def tool_node(state: State):
     for tool_call in ai_message.tool_calls:
         tool_name = tool_call["name"]
 
-        tool_message = tool_dict[tool_name].invoke(tool_call)
+        tool_message = tool_dict[tool_name].invoke({
+            **tool_call,
+            "args": {**tool_call["args"], "state": state, "store": store}
+        })
+
         tool_messages.append(tool_message)
 
         if "HandOff" in tool_name:

@@ -1,7 +1,7 @@
 import os
 from typing import Sequence
 
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.graph import START, END, StateGraph
 from langgraph.store.memory import InMemoryStore
@@ -14,35 +14,36 @@ from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_
 from langchain_rag.state import State
 
 
-def filter_newly_generated_messages(original_messages: Sequence[BaseMessage],
-                                    updated_messages: Sequence[BaseMessage]) -> Sequence[BaseMessage]:
-    last_message_id = original_messages[-1].id
-
-    last_message_index = len(updated_messages) - 1
-    while updated_messages[last_message_index].id != last_message_id:
-        last_message_index -= 1
+def filter_newly_generated_messages(updated_messages: Sequence[BaseMessage],
+                                    original_messages: Sequence[BaseMessage] = None) -> Sequence[BaseMessage]:
+    last_message_id = original_messages[-1].id if original_messages else None
 
     filtered: list[BaseMessage] = []
-    for message in updated_messages[last_message_index:]:
+    for index in range(len(updated_messages) - 1, -1, -1):
+        message = updated_messages[index]
+
+        if last_message_id is not None and message.id == last_message_id:
+            break
+
         if isinstance(message, HumanMessage):
             filtered.append(message)
-
         elif isinstance(message, AIMessage):
             if message.content != "":
                 filtered.append(AIMessage(id=message.id, content=message.content))
 
-        elif isinstance(message, ToolMessage):
-            continue
+    return filtered[::-1]
 
-        else:
-            filtered.append(message)
 
-    return filtered
+def default_state_node(state: State):
+    return {
+        "area": state["area"] if "area" in state else None,
+        "agent_call": state["agent_call"] if "agent_call" in state else None,
+    }
 
 
 def call_service_agent(state: State):
     agent_state = service_agent.invoke(state)
-    messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
+    messages = filter_newly_generated_messages(agent_state["messages"], original_messages=state["messages"])
 
     return {
         "agent_call": agent_state["agent_call"] if "agent_call" in agent_state else None,
@@ -51,9 +52,8 @@ def call_service_agent(state: State):
 
 
 def call_related_question_agent(state: State):
-    # TODO: agent manager의 마지막 메세지도 포함되서 반환됨
     agent_state = related_question_agent.invoke(state)
-    messages = filter_newly_generated_messages(state["messages"], agent_state["messages"])
+    messages = filter_newly_generated_messages(agent_state["messages"], original_messages=state["messages"])
 
     return {"messages": messages}
 
@@ -70,16 +70,19 @@ def agent_manager_node(state: State):
     elif agent_name == "SpaceQuestion":
         messages = hand_off_to_space_question_agent({**agent_args, "language": state.get("language")})
 
+    messages = filter_newly_generated_messages(messages)
     return {"agent_call": None, "messages": messages}
 
 
 workflow = StateGraph(state_schema=State)
 
+workflow.add_node("default_state", default_state_node)
 workflow.add_node("service_agent", call_service_agent)
 workflow.add_node("related_question_agent", call_related_question_agent)
 workflow.add_node("agent_manager", agent_manager_node)
 
-workflow.add_edge(START, "service_agent")
+workflow.add_edge(START, "default_state")
+workflow.add_edge("default_state", "service_agent")
 workflow.add_conditional_edges(
     "service_agent",
     lambda state: "agent_manager" if state["agent_call"] is not None else END,

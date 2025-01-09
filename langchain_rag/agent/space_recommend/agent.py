@@ -41,6 +41,4 @@ def hand_off_to_agent(args: dict) -> list[BaseMessage]:
         )
     )
 
-    return [AIMessage(id=message.id, content=message.content)
-            for message in state["messages"]
-            if isinstance(message, AIMessage) and message.content != ""]
+    return state["messages"]

@@ -1,4 +1,4 @@
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
@@ -34,6 +34,4 @@ def hand_off_to_agent(args: dict) -> list[BaseMessage]:
         )
     )
 
-    return [AIMessage(id=message.id, content=message.content)
-            for message in state["messages"]
-            if isinstance(message, AIMessage) and message.content != ""]
+    return state["messages"]

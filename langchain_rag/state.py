@@ -1,7 +1,6 @@
-from typing import Optional, Any
+from typing import Optional, Any, TypedDict
 
 from langgraph.graph import MessagesState
-from typing_extensions import TypedDict
 
 
 class AgentCall(TypedDict):
@@ -10,7 +9,8 @@ class AgentCall(TypedDict):
 
 
 class State(MessagesState):
+    user_id: str
     language: str
-    area: str
+    area: Optional[str]
 
     agent_call: Optional[AgentCall]

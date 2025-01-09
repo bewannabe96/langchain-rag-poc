@@ -11,15 +11,15 @@ from pydantic import Field, BaseModel
 from pymongo import MongoClient
 
 
-class SpaceSearchInput(BaseModel):
+class QuerySpaceSearchToolArgs(BaseModel):
     query: str = Field(description="English query for space search")
     areas: list[str] = Field(description="Areas of space in English (i.e. Brooklyn)")
 
 
-class SpaceSearchTool(BaseTool):
-    name: str = "SpaceSearch"
+class QuerySpaceSearchTool(BaseTool):
+    name: str = "QuerySpaceSearch"
     description: str = "Search spaces given a detailed query"
-    args_schema: Type[BaseModel] = SpaceSearchInput
+    args_schema: Type[BaseModel] = QuerySpaceSearchToolArgs
     return_direct: bool = True
 
     retriever: BaseRetriever = Field(default=None)
