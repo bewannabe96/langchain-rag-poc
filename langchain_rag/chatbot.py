@@ -4,13 +4,13 @@ from typing import Sequence
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.graph import START, END, StateGraph
-from langgraph.store.memory import InMemoryStore
 from pymongo import MongoClient
 
 from langchain_rag.agent.related_question_agent import related_question_agent
 from langchain_rag.agent.service.agent import agent as service_agent
 from langchain_rag.agent.space_question.agent import hand_off_to_agent as hand_off_to_space_question_agent
 from langchain_rag.agent.space_recommend.agent import hand_off_to_agent as hand_off_to_space_recommend_agent
+from langchain_rag.mongo_db_store import MongoDBStore
 from langchain_rag.state import State
 
 
@@ -97,5 +97,9 @@ checkpointer = MongoDBSaver(
     checkpoint_collection_name="checkpoints",
     writes_collection_name="checkpoint_writes",
 )
-store = InMemoryStore()
+store = MongoDBStore(
+    MongoClient(os.getenv("SESSION_MONGO_CONN_STR")),
+    db_name="daytrip_chatbot",
+    collection_name="memory",
+)
 chatbot = workflow.compile(checkpointer=checkpointer, store=store)
