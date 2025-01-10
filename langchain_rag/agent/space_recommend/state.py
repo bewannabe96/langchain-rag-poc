@@ -1,10 +1,9 @@
-from typing import TypedDict, Annotated, Sequence
+from typing import TypedDict, Annotated, Sequence, Optional
 
 from langchain_core.messages import BaseMessage
-from langgraph.graph import add_messages
+from langgraph.graph import add_messages, MessagesState
 
 
-class State(TypedDict):
+class State(MessagesState):
     language: str
-    messages: Annotated[Sequence[BaseMessage], add_messages]
     exclude_space_ids: list[str]

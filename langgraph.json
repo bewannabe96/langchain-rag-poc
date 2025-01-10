@@ -4,8 +4,12 @@
     "chatbot": "./langchain_rag/chatbot.py:chatbot",
 
     "service": "./langchain_rag/agent/service/agent.py:agent",
+
     "space_recommend": "./langchain_rag/agent/space_recommend/agent.py:agent",
+    "area_search_tool": "./langchain_rag/agent/space_recommend/tool/area_search_tool.py:agent",
+
     "space_question": "./langchain_rag/agent/space_question/agent.py:agent"
   },
-  "env": ".env"
+  "env": ".env",
+  "python_version": "3.12"
 }

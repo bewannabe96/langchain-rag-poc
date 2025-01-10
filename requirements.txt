@@ -1,6 +1,5 @@
 langchain
 langchain-openai
-langchain-mongodb
 langgraph
 pymongo
 pydantic
@@ -10,3 +9,5 @@ flask-restx
 langgraph-checkpoint-mongodb
 PyYAML
 python-dotenv
+langchain-mongodb==0.4.0
+numpy>=1.26.0,<2.0.0

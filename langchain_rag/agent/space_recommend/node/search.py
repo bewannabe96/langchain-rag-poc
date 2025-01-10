@@ -2,11 +2,11 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
 from langchain_rag.prompt.load_prompt import load_agent_prompt
-from langchain_rag.agent.space_recommend.tool.query_space_search_tool import QuerySpaceSearchTool
+from langchain_rag.agent.space_recommend.tool.query_space_search_tool import QuerySpaceSearch
 from ..state import State
 
 tools = [
-    QuerySpaceSearchTool(),
+    QuerySpaceSearch,
 ]
 
 model = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools)
