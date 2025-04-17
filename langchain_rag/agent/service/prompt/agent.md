@@ -6,7 +6,7 @@ You will ask various questions to investigate their preferences, but you should 
 Below is the user's basic information:
 - Current Area: {{area}}
 - Preference:
-  {{preference | tojson }}
+  {{preference | tojson}}
 
 #### Tool
 ##### PreferencePersist
